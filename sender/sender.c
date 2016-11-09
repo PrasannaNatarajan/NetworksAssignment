@@ -11,8 +11,10 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#define MC_PORT 5432
+#define MC_PORT 5431
 #define BUF_SIZE 4096
+#define TCP_PORT 5432
+#define MAX_PENDING 5
 
 typedef struct site_info
 {
@@ -81,7 +83,7 @@ int main(int argc, char * argv[]){
   memset((char *)&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = inet_addr(mcast_addr);
-  sin.sin_port = htons(MC_PORT);
+  sin.sin_port = htons(TCP_PORT);
 
  
   /* Send multicast messages */
@@ -89,7 +91,38 @@ int main(int argc, char * argv[]){
   /* You need to change it for sending A/V files */
   memset(buf, 0, sizeof(buf));
   
-  while (fgets (buf, BUF_SIZE, stdin)) {
+/* setup passive open */
+  if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    perror("simplex-talk: socket");
+    exit(1);
+  }
+ 
+  inet_ntop(AF_INET, &(sin.sin_addr), str, INET_ADDRSTRLEN);
+  printf("Server is using address %s and port %d.\n", str, SERVER_PORT);
+
+  if ((bind(s, (struct sockaddr *)&sin, sizeof(sin))) < 0) {
+    perror("simplex-talk: bind");
+    exit(1);
+  }
+  else
+    printf("Server bind done.\n");
+
+  listen(s, MAX_PENDING);
+
+  pid  = fork();
+  if(pid == 0){
+  	while(1) {
+    if ((new_s = accept(s, (struct sockaddr *)&sin, &len)) < 0) {
+      perror("simplex-talk: accept");
+      exit(1);
+    }
+    /*check station list and then send current station list*/
+    //send(new_s,buff,strlen(buff)+1,0);
+    
+  	}
+  }
+  else{
+  	while (fgets (buf, BUF_SIZE, stdin)) {
     if ((len = sendto(s, buf, sizeof(buf), 0,
 		      (struct sockaddr *)&sin, 
 		      sizeof(sin))) == -1) {
@@ -99,7 +132,9 @@ int main(int argc, char * argv[]){
     
     memset(buf, 0, sizeof(buf));
   
+  	}
   }
+  
   
   close(s);  
   return 0;
