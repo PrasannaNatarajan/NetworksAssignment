@@ -3,13 +3,13 @@
    Team: 
 */
 
-#include < stdio.h > 
-#include < stdlib.h > 
-#include < string.h > 
-#include < sys / types.h > 
-#include < sys / socket.h > 
-#include < netinet / in .h > 
-#include < netdb.h >
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <string.h> 
+#include <sys/types.h> 
+#include <sys/socket.h> 
+#include <netinet/in.h> 
+#include <netdb.h>
 
 #define MC_PORT 5431
 #define BUF_SIZE 4096
@@ -17,17 +17,6 @@
 #define MAX_PENDING 5
 #define MAX_NUM_OF_STATIONS 10
 #define MAX_FILES_IN_A_STATION 1
-
-typedef struct site_info {
-  uint8_t type;
-  uint8_t site_name_size;
-  char * site_name;
-  uint8_t site_desc_size;
-  char * site_desc;
-  uint8_t station_count;
-  station_info * station_list;
-}
-site_info_t;
 
 typedef struct station_info {
   uint8_t station_number;
@@ -39,6 +28,17 @@ typedef struct station_info {
   uint32_t bit_rate;
 }
 station_info_t;
+
+typedef struct site_info {
+  uint8_t type;
+  uint8_t site_name_size;
+  char * site_name;
+  uint8_t site_desc_size;
+  char * site_desc;
+  uint8_t station_count;
+  station_info_t * station_list;
+}
+site_info_t;
 
 typedef struct station_not_found {
   uint8_t type;
@@ -98,7 +98,7 @@ int main(int argc, char * argv[]) {
     /* Warning: This implementation sends strings ONLY */
     /* You need to change it for sending A/V files */
     memset(buf, 0, sizeof(buf));
-
+    char str[INET_ADDRSTRLEN];
     /* setup passive open */
     if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
       perror("simplex-talk: socket");
@@ -111,7 +111,7 @@ int main(int argc, char * argv[]) {
     sin.sin_port = htons(TCP_PORT);
 
     inet_ntop(AF_INET, & (sin.sin_addr), str, INET_ADDRSTRLEN);
-    printf("Server is using address %s and port %d.\n", str, SERVER_PORT);
+    printf("Server is using address %s and port %d.\n", str, TCP_PORT);
 
     if ((bind(s, (struct sockaddr * ) & sin, sizeof(sin))) < 0) {
       perror("simplex-talk: bind");

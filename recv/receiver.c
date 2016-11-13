@@ -18,9 +18,6 @@
 #define MC_PORT 5433
 #define DEBUG 1
 
-/*function prototypes*/
-void Serialize_station_info_req(station_info_request_t *buf,char *x);
-
 typedef struct station_info_request
 {
   uint8_t type;
@@ -35,6 +32,9 @@ typedef struct song_info
   uint8_t next_song_name_size;
   char next_song_name;
 }song_info_t;
+
+/*function prototypes*/
+void Serialize_station_info_req(station_info_request_t *buf,char *x);
 
 /*Helper Functions*/
 void Serialize_station_info_req(station_info_request_t *buf,char *x){
@@ -121,17 +121,17 @@ int main(int argc, char * argv[]){
   station_info_request_t *req;
   req = malloc(sizeof(struct station_info_request)*sizeof(char));
   req->type = 1;
-  char buf[1024];
-  Serialize_station_info_req(req,buf);
-  send(s_tcp, buf, 1024, 0);
+  char buf_tosend[1024];
+  Serialize_station_info_req(req,buf_tosend);
+  send(s_tcp, buf_tosend, 1024, 0);
   char recv_buf[1024];
   recv(s_tcp,recv_buf,sizeof(recv_buf),0);
   
   /*
-  1) Decode the site_info struct
+  1) Decode the site_info struct and put it into correponding variables
   2) Display recv_buf->station_list[]
   */ 
-  char station_list_from_server[]; // buffer to store station_list decoded
+  //char station_list_from_server[size_retrived_from_decoding]; // buffer to store station_list decoded
   
 
   
