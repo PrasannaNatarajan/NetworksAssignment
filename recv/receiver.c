@@ -13,8 +13,13 @@
 #include <netdb.h>
 #include <sys/ioctl.h>
 
-#define MC_PORT 5432
+#define TCP_PORT 5432
 #define BUF_SIZE 4096
+#define MC_PORT 5433
+#define DEBUG 1
+
+/*function prototypes*/
+void Serialize_station_info_req(station_info_request_t *buf,char *x);
 
 typedef struct station_info_request
 {
@@ -30,10 +35,29 @@ typedef struct song_info
   uint8_t next_song_name_size;
   char next_song_name;
 }song_info_t;
+
+/*Helper Functions*/
+void Serialize_station_info_req(station_info_request_t *buf,char *x){
+  int i;
+  char buffer[1024]; 
+  memcpy(buffer,&(buf->type),1);
+  
+  if(DEBUG == 1)
+  {
+    puts(">>Print memcpy buffer");
+    for(i=0;i<1;i++){
+      printf("%d",buffer[i]);
+    }
+  }
+  memcpy(x,buffer,sizeof(buffer));
+    if(DEBUG == 1)
+      puts("End Serialize_fr");
+}
+
 int main(int argc, char * argv[]){
   
-  int s; /* socket descriptor */
-  struct sockaddr_in sin; /* socket struct */
+  int s,s_tcp; /* socket descriptor */
+  struct sockaddr_in sin,sin_tcp; /* socket struct */
   char *if_name; /* name of interface */
   struct ifreq ifr; /* interface struct */
   char buf[BUF_SIZE];
@@ -44,13 +68,15 @@ int main(int argc, char * argv[]){
   struct sockaddr_in mcast_saddr; /* multicast sender*/
   socklen_t mcast_saddr_len;
 
+  char* tcp_addr; /*tcp ip address for control codes*/
+  struct hostent *hp;
 
   /* Add code to take port number from user */
   if ((argc==2)||(argc == 3)) {
-    mcast_addr = argv[1];
+    tcp_addr = argv[1];
   }
   else {
-    fprintf(stderr, "usage:(sudo) receiver multicast_address [interface_name (optional)]\n");
+    fprintf(stderr, "usage:(sudo) receiver tcp_address [interface_name (optional)]\n");
     exit(1);
   }
 
@@ -60,6 +86,55 @@ int main(int argc, char * argv[]){
   else
     if_name = "wlan0";
 
+
+
+  /* translate host name into peer's IP address */
+  hp = gethostbyname(tcp_addr);
+  if (!hp) {
+   fprintf(stderr, "simplex-talk: unknown host: %s\n", tcp_addr);
+   exit(1);
+  }
+  else
+   printf("Client's remote host: %s\n", argv[1]);
+  /* build address data structure */
+  bzero((char *)&sin_tcp, sizeof(sin_tcp));
+  sin_tcp.sin_family = AF_INET;
+  bcopy(hp->h_addr, (char *)&sin_tcp.sin_addr, hp->h_length);
+  sin_tcp.sin_port = htons(TCP_PORT);
+  /* active open */
+  if ((s_tcp = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+   perror("simplex-talk: socket");
+   exit(1);
+  }
+  else
+   printf("Client created socket.\n");
+
+  if (connect(s_tcp, (struct sockaddr *)&sin_tcp, sizeof(sin_tcp)) < 0)
+    {
+      perror("simplex-talk: connect");
+      close(s);
+      exit(1);
+    }
+  else
+    printf("Client connected.\n");
+
+  station_info_request_t *req;
+  req = malloc(sizeof(struct station_info_request)*sizeof(char));
+  req->type = 1;
+  char buf[1024];
+  Serialize_station_info_req(req,buf);
+  send(s_tcp, buf, 1024, 0);
+  char recv_buf[1024];
+  recv(s_tcp,recv_buf,sizeof(recv_buf),0);
+  
+  /*
+  1) Decode the site_info struct
+  2) Display recv_buf->station_list[]
+  */ 
+  char station_list_from_server[]; // buffer to store station_list decoded
+  
+
+  
 
   /* create socket */
   if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
