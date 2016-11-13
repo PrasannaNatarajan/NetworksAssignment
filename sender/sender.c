@@ -29,6 +29,31 @@ typedef struct station_info {
 }
 station_info_t;
 
+
+void serialize_station_info_t(station_info_t *buf,char *x){
+  char buffer[2048];    //ARBITRARY SIZE INITIALIZATION 
+
+  memcpy(buffer               ,&(buf->station_number)   ,1);
+
+  memcpy(buffer+1             ,&(buf->station_name_size)  ,1);
+
+  memcpy(buffer+2             ,(buf->station_name)    ,buf->station_name_size);
+
+  uint32_t multicast_address = htons(buf->multicast_address);
+  memcpy(buffer+2+buf->station_name_size      ,&multicast_address ,4);
+
+  uint16_t data_port = htons(buf->data_port);
+  memcpy(buffer+2+buf->station_name_size+4    ,&data_port     ,2);
+
+  uint16_t info_port = htons(buf->info_port);
+  memcpy(buffer+2+buf->station_name_size+4+2    ,&info_port     ,2);
+
+  uint32_t bit_rate = htons(buf->bit_rate);
+  memcpy(buffer+2+buf->station_name_size+4+2+2  ,&bit_rate      ,4);
+
+  memcpy(x,buffer,sizeof(buffer));
+}
+
 typedef struct site_info {
   uint8_t type;
   uint8_t site_name_size;
@@ -40,21 +65,69 @@ typedef struct site_info {
 }
 site_info_t;
 
+
+void serialize_site_info_t(site_info_t *buf,char *x){
+  char buffer[1024];    //ARBITRARY SIZE INITIALIZATION 
+
+  memcpy(buffer               ,&(buf->type)       ,1);
+
+  memcpy(buffer+1             ,&(buf->site_name_size)   ,1);
+
+  memcpy(buffer+2             ,(buf->site_name)     ,buf->site_name_size);
+
+  memcpy(buffer+2+buf->site_name_size   ,&(buf->site_desc_size)   ,1);
+
+  memcpy(buffer+2+buf->site_name_size+1 ,(buf->site_desc)     ,buf->site_desc_size);
+
+// FATAL ERROR
+
+  memcpy(x,buffer,sizeof(buffer));
+}
+
 typedef struct station_not_found {
   uint8_t type;
   uint8_t station_number;
 }
 station_not_found_t;
 
+void serialize_station_not_found_t(station_not_found_t *buf,char *x){
+  char buffer[5];   //ARBITRARY SIZE INITIALIZATION 
+
+  memcpy(buffer               ,&(buf->type)       ,1);
+
+  memcpy(buffer+1             ,&(buf->station_number)   ,1);
+
+  memcpy(x,buffer,sizeof(buffer));
+}
+
 typedef struct song_info {
   uint8_t type;
   uint8_t song_name_size;
-  char song_name;
+  char* song_name;
   uint16_t remaining_time_in_sec;
   uint8_t next_song_name_size;
-  char next_song_name;
+  char* next_song_name;
 }
 song_info_t;
+
+void serialize_song_info_t(song_info_t *buf,char *x){
+  char buffer[1024];    //ARBITRARY SIZE INITIALIZATION 
+
+  memcpy(buffer               ,&(buf->type)       ,1);
+
+  memcpy(buffer+1             ,&(buf->song_name_size)   ,1);
+
+  memcpy(buffer+2             ,(buf->song_name)     ,buf->song_name_size);
+
+  uint16_t remaining_time_in_sec = htons(buf->remaining_time_in_sec);
+  memcpy(buffer+2+buf->song_name_size   ,&remaining_time_in_sec   ,2);
+
+  memcpy(buffer+2+buf->song_name_size+2 ,&(buf->next_song_name_size),1);
+
+  memcpy(buffer+2+buf->song_name_size+2+1 ,(buf->next_song_name)    ,buf->next_song_name_size);
+  
+  memcpy(x,buffer,sizeof(buffer));
+}
 
 /*Global Variables*/
 char* all_mcast_addresses[MAX_FILES_IN_A_STATION];
